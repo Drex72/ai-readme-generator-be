@@ -9,14 +9,35 @@ class ReadmePrompts:
     def get_common_guidelines() -> str:
         """Get common writing guidelines for all sections."""
         return """
-        CRITICAL WRITING GUIDELINES:
-        - Use second person for instructions (You can/should) and neutral imperative commands (Install the package, Run the tests)
-        - Use third person where appropriate (This project provides, The application supports)
-        - NEVER use first person (We/I/Our)
-        - Write directly to users with clear, actionable instructions
-        - Use active voice and direct commands
-        - Be specific and actionable
-        - Avoid vague statements like "We don't know" or "From what I can see"
+        CRITICAL WRITING GUIDELINES - Write as a Senior Technical Writer:
+
+        TONE & VOICE:
+        - Write with authority and professionalism
+        - Use active voice and imperative mood for instructions
+        - Be direct and concise - every word must add value
+        - Assume readers have basic technical knowledge
+        - NEVER use first person (We/I/Our) - use second person (You) or third person (The project/This library)
+
+        CONTENT QUALITY:
+        - Be specific - provide exact versions, commands, and values
+        - Avoid filler words and unnecessary explanations
+        - Don't state the obvious (e.g., "You should clone using the URL below")
+        - Use precise technical terminology
+        - Focus on what users need to know, not what you want to say
+
+        STRUCTURE:
+        - Start with the most important information
+        - Use clear headings and logical flow
+        - Keep paragraphs short (2-4 sentences max)
+        - Use lists for steps or multiple items
+        - Use code blocks for all commands, code, and configuration
+
+        WHAT TO AVOID:
+        - Vague statements like "recent version", "as needed", "if applicable"
+        - Redundant instructions or explanations
+        - Flowery language or marketing speak
+        - Overly casual phrases like "getting bogged down", "just run"
+        - Apologetic or uncertain language
         """
 
     @staticmethod
@@ -33,343 +54,228 @@ class ReadmePrompts:
 
     @staticmethod
     def get_section_specific_prompt(
-        section: ReadmeSection, repo_info: Dict[str, Any]
+        section: ReadmeSection, repo_info: Dict[str, Any], all_sections: list = None
     ) -> str:
         """Get a section-specific prompt based on the section type."""
         base_info = ReadmePrompts.get_base_repo_info(repo_info)
         common_guidelines = ReadmePrompts.get_common_guidelines()
         section_name_lower = section.name.lower()
 
-        # Section-specific prompts
-        if section_name_lower in ["introduction", "overview"]:
+        # Map section names to their prompts
+        section_prompts = {
+            "introduction": {
+                "instructions": """
+            - Open with a single, clear sentence stating what the project does
+            - State the specific problem or use case it addresses
+            - Highlight 2-3 key benefits or value propositions
+            - Maximum 2-3 short paragraphs
+            - Avoid marketing language, flowery introductions, or background stories"""
+            },
+            "table of contents": {
+                "instructions": """
+            - Create markdown links to ALL sections that will appear in the README
+            - Use a bulleted list format with proper anchor links
+            - Link format: [Section Name](#section-name) where section-name is lowercase with hyphens and spaces replaced
+            - Include all H2 (##) sections that come AFTER this Table of Contents
+            - Do NOT include the Table of Contents itself in the links
+            - Order links to match the actual section order in the document
+            - Example format:
+              - [Introduction](#introduction)
+              - [Features](#features)
+              - [Installation](#installation)
+            - Keep it clean and simple - no decorations or emojis"""
+            },
+            "features": {
+                "instructions": """
+            - Use concise bullet points (one line per feature)
+            - State user-facing capabilities, not implementation details
+            - Be specific - avoid vague terms like "powerful" or "flexible"
+            - Focus on what users can accomplish
+            - Group related features with sub-bullets if needed"""
+            },
+            "tech stack": {
+                "instructions": """
+            - Identify and list primary technologies from repository files (package.json, requirements.txt, go.mod, Cargo.toml, etc.)
+            - Include version numbers if clearly specified in dependency files
+            - Organize by category (Backend, Frontend, Database, DevOps, Testing, etc.)
+            - Use bullet points with framework/library names
+            - Focus on major dependencies only (5-10 key technologies)
+            - Do NOT leave this section empty - analyze the repository to find technologies
+            - If using badges, include them for major frameworks/languages"""
+            },
+            "prerequisites": {
+                "instructions": """
+            - List required software with minimum version numbers
+            - Include system requirements if relevant
+            - Mention accounts or API keys needed
+            - Use bullet points for clarity
+            - Separate required vs optional prerequisites"""
+            },
+            "installation": {
+                "instructions": """
+            - Provide numbered steps in logical order
+            - Include git clone command with the repository URL
+            - Show package installation commands (npm install, pip install -r requirements.txt, etc.)
+            - Include database setup/migrations if applicable
+            - Include environment variable setup if needed
+            - One code block per distinct step
+            - STOP after installation is complete - do NOT include running the application
+            - Do NOT repeat steps that belong in Usage section (like running servers or creating users)"""
+            },
+            "configuration": {
+                "instructions": """
+            - List configuration options in a table format
+            - Include: option name, type, default value, description
+            - Show example configuration files
+            - Document environment variables with examples
+            - Explicitly mark required vs optional settings"""
+            },
+            "usage": {
+                "instructions": """
+            - START with how to run the application (e.g., npm start, python manage.py runserver)
+            - Show the simplest working example of using the project
+            - Provide actual, runnable code samples (not pseudocode)
+            - Include necessary imports or setup for code examples
+            - Demonstrate 2-3 common use cases with code
+            - Use appropriate language syntax highlighting
+            - Show expected output only if it adds value
+            - Do NOT repeat installation steps - assume installation is already complete
+            - Focus on "how to use" not "how to install"""
+            },
+            "api reference": {
+                "instructions": """
+            - Document key endpoints, functions, or classes
+            - Use consistent format: signature, parameters, return value, example
+            - Include HTTP methods and routes for REST APIs
+            - Show request/response examples
+            - Provide type information where applicable
+            - Keep descriptions technical and precise"""
+            },
+            "project structure": {
+                "instructions": """
+            - Display directory tree of key folders and files
+            - Use code block with tree-like formatting
+            - Add brief descriptions for important directories
+            - Focus on what developers need to know
+            - Explain purpose of main configuration files"""
+            },
+            "testing": {
+                "instructions": """
+            - Provide commands to run tests
+            - List test frameworks/runners used
+            - Explain different test types if applicable (unit, integration, e2e)
+            - Show how to run specific test suites
+            - Include coverage commands if available"""
+            },
+            "deployment": {
+                "instructions": """
+            - Provide deployment steps in sequential order
+            - Specify target platforms (Vercel, Heroku, AWS, Docker, etc.)
+            - Include build/compilation commands
+            - Show environment variable configuration
+            - Link to platform-specific documentation if needed"""
+            },
+            "contributing": {
+                "instructions": """
+            - State how to report issues and submit PRs
+            - Provide development setup steps
+            - Describe coding standards or style guide
+            - Explain branch naming and commit conventions
+            - Be welcoming but professional"""
+            },
+            "license": {
+                "instructions": """
+            - State license type prominently at the top
+            - Link to LICENSE file ONLY if it exists (check license_file field)
+            - Briefly explain key permissions and restrictions
+            - No placeholder links to non-existent files
+            - Keep it factual - no legal interpretation""",
+                "context": ReadmePrompts._get_license_context(repo_info),
+            },
+        }
+
+        # Get the prompt configuration for this section
+        prompt_config = section_prompts.get(section_name_lower)
+
+        if prompt_config:
+            context = prompt_config.get("context", "")
+            instructions = prompt_config.get("instructions", "")
+
+            if section_name_lower == "table of contents" and all_sections:
+                sections_list = "\n\nSections to include in Table of Contents:\n"
+                for s in all_sections:
+                    if s.name.lower() != "table of contents":
+                        sections_list += f"- {s.name}\n"
+                context += sections_list
+
             return f"""
             Create ONLY the "{section.name}" section for this README.
-            
+
             {base_info}
-            
-            This section should:
-            - Start with a compelling one-sentence description of what this project does
-            - Explain the main problem it solves or need it addresses
-            - Highlight 2-3 key benefits or features
-            - Keep it concise (2-3 paragraphs maximum)
-            
+            {context}
+            This section should:{instructions}
+
             {common_guidelines}
-            
+
             Format as: ## {section.name}
             """
-
-        elif section_name_lower == "installation":
-            return f"""
-            Create ONLY the "{section.name}" section for this README.
-            
-            {base_info}
-            
-            This section should provide clear, step-by-step installation instructions:
-            - Start with cloning the repository using the actual clone URL provided above
-            - List any prerequisites (Node.js version, Python version, etc.)
-            - Provide specific commands for the detected language/framework
-            - Include package manager commands (npm, pip, etc.)
-            - Add environment setup if needed
-            - Use code blocks for all commands
-            
-            {common_guidelines}
-            
-            Format as: ## {section.name}
-            """
-
-        elif section_name_lower in ["usage", "getting started"]:
-            return f"""
-            Create ONLY the "{section.name}" section for this README.
-            
-            {base_info}
-            
-            This section should:
-            - Provide a quick start example
-            - Show the most common use case with working code
-            - Include import/require statements
-            - Show expected output where relevant
-            - Use proper code formatting with language tags
-            
-            {common_guidelines}
-            
-            Format as: ## {section.name}
-            """
-
-        elif section_name_lower in ["features", "capabilities"]:
-            return f"""
-            Create ONLY the "{section.name}" section for this README.
-            
-            {base_info}
-            
-            This section should:
-            - List key features in bullet points or numbered list
-            - Focus on user benefits, not technical implementation details
-            - Use action-oriented language
-            - Keep each feature description to 1-2 lines
-            
-            {common_guidelines}
-            
-            Format as: ## {section.name}
-            """
-
-        elif section_name_lower in ["api reference", "api", "api documentation"]:
-            return f"""
-            Create ONLY the "{section.name}" section for this README.
-            
-            {base_info}
-            
-            This section should:
-            - Document main classes, functions, or endpoints
-            - Include parameter descriptions and return values
-            - Provide code examples for each API element
-            - Use proper code formatting
-            
-            {common_guidelines}
-            
-            Format as: ## {section.name}
-            """
-
-        elif section_name_lower in ["configuration", "config", "setup"]:
-            return f"""
-            Create ONLY the "{section.name}" section for this README.
-            
-            {base_info}
-            
-            This section should:
-            - Explain available configuration options
-            - Show configuration file examples
-            - Explain environment variables if applicable
-            - Provide default values where relevant
-            
-            {common_guidelines}
-            
-            Format as: ## {section.name}
-            """
-
-        elif section_name_lower in ["contributing", "contribution"]:
-            return f"""
-            Create ONLY the "{section.name}" section for this README.
-            
-            {base_info}
-            
-            This section should:
-            - Explain how others can contribute
-            - List steps for setting up development environment
-            - Mention coding standards or guidelines
-            - Explain pull request process
-            - Be welcoming and encouraging
-            
-            {common_guidelines}
-            
-            Format as: ## {section.name}
-            """
-
-        elif section_name_lower in ["testing", "tests"]:
-            return f"""
-            Create ONLY the "{section.name}" section for this README.
-            
-            {base_info}
-            
-            This section should:
-            - Explain how to run the test suite
-            - Provide specific test commands
-            - Mention test frameworks used
-            - Explain how to run different types of tests (unit, integration, etc.)
-            
-            {common_guidelines}
-            
-            Format as: ## {section.name}
-            """
-
-        elif section_name_lower in ["deployment", "deploy"]:
-            return f"""
-            Create ONLY the "{section.name}" section for this README.
-            
-            {base_info}
-            
-            This section should:
-            - Explain deployment process step by step
-            - Mention deployment platforms or requirements
-            - Include build commands if needed
-            - Provide environment-specific instructions
-            
-            {common_guidelines}
-            
-            Format as: ## {section.name}
-            """
-
-        elif section_name_lower in [
-            "project structure",
-            "file structure",
-            "organization",
-        ]:
-            return f"""
-            Create ONLY the "{section.name}" section for this README.
-            
-            {base_info}
-            
-            Additional Context:
-            {repo_info.get('file_structure', 'File structure not available')}
-            
-            This section should:
-            - Explain the purpose of main directories and files
-            - Use a tree structure or organized list
-            - Focus on files/folders users need to know about
-            - Keep explanations brief and clear
-            
-            {common_guidelines}
-            
-            Format as: ## {section.name}
-            """
-
-        elif section_name_lower in ["examples", "more examples"]:
-            return f"""
-            Create ONLY the "{section.name}" section for this README.
-            
-            {base_info}
-            
-            This section should:
-            - Provide multiple practical examples
-            - Show different use cases or scenarios
-            - Include complete, working code samples
-            - Explain what each example demonstrates
-            
-            {common_guidelines}
-            
-            Format as: ## {section.name}
-            """
-
-        elif section_name_lower in ["license", "licensing"]:
-            license_info = ""
-            if repo_info.get('license'):
-                license_info += f"- License Type: {repo_info.get('license')}\n            "
-            if repo_info.get('license_file'):
-                license_info += f"- License File: {repo_info.get('license_file')} (exists in repository)\n            "
-            else:
-                license_info += "- No license file found in repository root\n            "
-                
-            return f"""
-            Create ONLY the "{section.name}" section for this README.
-            
-            {base_info}
-            
-            Additional License Information:
-            {license_info}
-            
-            This section should:
-            - State the license type clearly (use the license type from repository information if available)
-            - ONLY link to license file if one actually exists in the repository (license_file field above)
-            - If no license file exists, do NOT create a link to LICENSE.md or similar
-            - Include standard license badge if appropriate
-            - Mention any licensing restrictions or permissions
-            - Keep it brief and factual
-            
-            {common_guidelines}
-            
-            Format as: ## {section.name}
-            """
-
         else:
-            # Generic fallback for custom sections
+            # Generic fallback for custom or unrecognized sections
             return f"""
             Create ONLY the "{section.name}" section for this README.
-            
+
             {base_info}
-            
+
             Section Description: {section.description}
-            
+
             This section should address the described purpose while being:
             - Clear and actionable
             - Relevant to the project
             - Well-formatted in Markdown
-            
+
             {common_guidelines}
-            
+
             Format as: ## {section.name}
             """
 
     @staticmethod
-    def get_full_readme_prompt(
-        repo_info: Dict[str, Any],
-        sections,
-        file_structure: str = "",
-        code_samples: str = "",
-    ) -> str:
-        """Get the prompt for generating a complete README in one call."""
-        # Format sections for the prompt
-        section_descriptions = "\n".join(
-            [f"- {section.name}: {section.description}" for section in sections]
-        )
-
-        return f"""
-        # TASK
-        You are an expert technical writer specializing in creating clear, professional, and comprehensive README documentation for software projects.
-
-        Create a README.md for a GitHub repository with the following information:
-
-        # REPOSITORY INFORMATION
-        - Name: {repo_info.get('name', 'Unknown')}
-        - Description: {repo_info.get('description', 'No description provided')}
-        - Primary Language: {repo_info.get('language', 'Not specified')}
-        - Clone URL: {repo_info.get('clone_url', 'https://github.com/username/repository.git')}
-        - License: {repo_info.get('license', 'Not specified')}
-        - License File: {repo_info.get('license_file', 'None found')}
-        - Topics/Tags: {', '.join(repo_info.get('topics', ['None']))}
-
-        # FILE STRUCTURE
-        {file_structure}
-
-        {code_samples}
-
-        # REQUIRED SECTIONS
-        The README MUST start with a title (H1 heading with repository name) followed by ONLY the following sections (in this exact order):
-        {section_descriptions}
-
-        # CRITICAL WRITING GUIDELINES
-        1. ONLY create the sections listed above - do NOT add any additional sections
-        2. Use second person for instructions (You can/should) and neutral imperative commands (Install the package, Run the tests)
-        3. Use third person where appropriate (This project provides, The application supports)
-        4. NEVER use first person (We/I/Our)
-        5. Write directly to users with clear, actionable instructions
-        6. Use active voice and direct commands (e.g., "Install the package" not "The package can be installed")
-        7. Be specific and actionable - avoid vague statements
-        8. Use professional, clear, and concise language
-        9. Follow Markdown best practices with proper headings, lists, code blocks, etc.
-        10. For installation and usage sections, use real commands based on the repo's language/framework
-        11. Provide concrete examples where possible
-        12. For license sections, ONLY link to license files that actually exist (check License File field above)
-        13. Format the output as a valid Markdown document
-        14. Do NOT include any sections beyond those explicitly requested above
-
-        # OUTPUT FORMAT
-        Respond with ONLY the README.md content in Markdown format, without any additional explanation or conversation.
-        """
+    def _get_license_context(repo_info: Dict[str, Any]) -> str:
+        """Get license context for the license section."""
+        license_info = "\nAdditional License Information:\n"
+        if repo_info.get("license"):
+            license_info += f"- License Type: {repo_info.get('license')}\n            "
+        if repo_info.get("license_file"):
+            license_info += f"- License File: {repo_info.get('license_file')} (exists in repository)\n            "
+        else:
+            license_info += "- No license file found in repository root\n            "
+        return license_info
 
     @staticmethod
     def get_header_prompt(repo_info: Dict[str, Any]) -> str:
         """Get the prompt for generating README header section."""
+        base_info = ReadmePrompts.get_base_repo_info(repo_info)
+        common_guidelines = ReadmePrompts.get_common_guidelines()
+
         return f"""
         Create only the header section of a README.md for the GitHub repository: {repo_info.get('name')}
 
-        Repository Information:
-        - Name: {repo_info.get('name', 'Unknown')}
-        - Description: {repo_info.get('description', 'No description provided')}
-        - Primary Language: {repo_info.get('language', 'Not specified')}
-        - Clone URL: {repo_info.get('clone_url', 'https://github.com/username/repository.git')}
+        {base_info}
 
-        Include:
-        1. A title (H1 heading with the repository name)
-        2. A brief one-paragraph description of what the project does
-        3. Appropriate badges if needed (build status, version, license, etc.)
+        REQUIREMENTS:
+        1. Start with H1 title: # {repo_info.get('name', 'Project Name')}
+        2. Add a brief one-sentence description of what the project does (plain text, not a heading)
+        3. Include relevant badges if appropriate (build status, version, license, language, etc.)
 
-        CRITICAL WRITING GUIDELINES:
-        - Use second person for instructions (You can/should) and neutral imperative commands (Install the package, Run the tests)
-        - Use third person where appropriate (This project provides, The application supports)
-        - NEVER use first person (We/I/Our)
-        - Write directly to users with clear, actionable instructions
-        - Use active voice and direct commands
-        - Be specific and actionable
-        - Avoid vague statements like "We don't know" or "From what I can see"
+        FORMAT:
+        # Project Name
+        Brief one-line description here.
 
-        Format the output as Markdown. ONLY include the header section, no other sections.
+        [Badges here if applicable]
+
+        {common_guidelines}
+
+        IMPORTANT:
+        - The H1 title MUST be the first line
+        - ONLY include the header section, no other sections like Introduction or Table of Contents
+        - Do NOT add any ## headings in this section
         """
