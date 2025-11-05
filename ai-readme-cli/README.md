@@ -146,7 +146,7 @@ To set up a local development environment, ensure you have Python 3.8+ installed
 
 3.  Install development dependencies:
     ```bash
-    pip install -r requirements-dev.txt
+    pip install -r requirements.txt
     ```
 
 4.  Install the CLI in editable mode:

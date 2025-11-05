@@ -8,9 +8,39 @@ class GeminiService:
         self.model = genai.GenerativeModel('gemini-2.5-pro')
         self.prompts = ReadmePrompts()
 
-    def generate_readme(self, repo_info: Dict[str, Any], sections: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Generate a README for the repository."""
+    def generate_readme(self, repo_info: Dict[str, Any], sections: List[Dict[str, Any]], existing_readme: str = None) -> Dict[str, Any]:
+        """Generate or optimize a README for the repository."""
         try:
+            # Check for existing README first
+            if existing_readme and existing_readme.strip():
+                print("Found existing README - will optimize it instead of creating from scratch")
+
+                # Create improvement instructions based on requested sections
+                section_names = [section['name'] for section in sections]
+                improvement_feedback = f"""
+                Please improve this existing README by enhancing or adding the following sections: {', '.join(section_names)}.
+
+                Repository Information:
+                - Name: {repo_info.get('name', 'Unknown')}
+                - Description: {repo_info.get('description', 'No description provided')}
+                - Primary Language: {repo_info.get('language', 'Not specified')}
+                - Clone URL: {repo_info.get('clone_url', 'Local repository')}
+
+                Guidelines:
+                - Keep good existing content but enhance it
+                - Add missing sections from the requested list
+                - Improve existing sections to be more comprehensive and professional
+                - Use the repository information above for accuracy
+                - Follow modern README best practices
+                """
+
+                optimized_content = self.refine_readme(existing_readme, improvement_feedback)
+                return {
+                    'content': optimized_content,
+                    'sections_generated': section_names,
+                    'optimization': True
+                }
+
             # Sort sections by order
             sorted_sections = sorted(sections, key=lambda x: x['order'])
 
@@ -35,7 +65,8 @@ class GeminiService:
 
             return {
                 'content': full_content,
-                'sections_generated': sections_generated
+                'sections_generated': sections_generated,
+                'optimization': False
             }
 
         except Exception as e:
